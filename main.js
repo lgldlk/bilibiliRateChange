@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站多倍速调节（支持剧集和视频）
 // @namespace    lgldlk
-// @version      0.5
+// @version      0.6
 // @description  b站多倍速调节（支持剧集和视频）🤞🤞🤞~~~
 // @author       lgldlk
 // @include      *://*.bilibili.com/video/*
@@ -10,6 +10,7 @@
 // @include      *://*.bilibili.tv/bangumi/*
 // @run-at       document-start
 // @grant        none
+// @license MIT
 // ==/UserScript==
 let cacheRate = 1,
     cacheFlag = true,
@@ -56,7 +57,7 @@ function setRateText(rate) {
 const initRateBody = function(callBack) {
     waitForNode(() => document.querySelector('div.bilibili-player-video-btn-speed > div > ul')||document.querySelector("ul.squirtle-select-list.squirtle-speed-select-list.squirtle-dialog"),
         (node) => {
-            var oV = document.getElementsByTagName("video")[0];
+             var oV = document.querySelector("video")?document.querySelector("video"):document.querySelector("bwp-video")
             if (oV == undefined) {
                 alert("清空缓存后刷新即可使用")
                 return;
