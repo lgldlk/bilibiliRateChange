@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         b站多倍速调节（支持视频）已支持自动变速
 // @namespace    lgldlk
-// @version      0.9
+// @version      1.0
 // @description  b站多倍速调节（支持视频）已支持自动变速🤞🤞🤞~~~
 // @author       lgldlk
 // @include      *://*.bilibili.com/video/*
@@ -47,6 +47,7 @@ const key = 'lgldl_rate_key';
 
 function setRate(video, rate) {
   video.playbackRate = rate;
+  cacheRate = rate;
   localStorage.setItem(key, rate);
   setRateText(rate);
 }
@@ -60,10 +61,10 @@ function setRateText(rate) {
 
 const initRateBody = function (callBack) {
   waitForNode(
-    () => selector('ul.bpx-player-ctrl-playbackrate-menu') && selector('.bili-header .right-entry'),
+    () => selector('ul.bpx-player-ctrl-playbackrate-menu'),
     () => {
       const menuNode = selector('ul.bpx-player-ctrl-playbackrate-menu');
-      const cachedRate = Number(localStorage.getItem(key) || 1);
+      cacheRate = Number(localStorage.getItem(key) || 1);
       const videoElement = selector('video') || selector('bwp-video');
       if (!videoElement) {
         alert('清空缓存后刷新即可使用');
@@ -85,14 +86,12 @@ const initRateBody = function (callBack) {
       });
 
       const applyCachedRate = () => {
-        if (cachedRate !== videoElement.playbackRate) {
-          setRate(videoElement, cachedRate);
+        if (cacheRate !== videoElement.playbackRate) {
+          setRate(videoElement, cacheRate);
         }
       };
       applyCachedRate();
       videoElement.addEventListener('playing', applyCachedRate);
-
-      cacheRate = Number(localStorage.getItem(key) || 1);
       callBack && callBack();
     }
   );
