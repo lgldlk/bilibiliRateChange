@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         b站多倍速调节（支持剧集和视频）
+// @name         b站多倍速调节（支持视频）已支持自动变速
 // @namespace    lgldlk
-// @version      0.6
-// @description  b站多倍速调节（支持剧集和视频）🤞🤞🤞~~~
+// @version      0.9
+// @description  b站多倍速调节（支持视频）已支持自动变速🤞🤞🤞~~~
 // @author       lgldlk
 // @include      *://*.bilibili.com/video/*
 // @include      *://*.bilibili.tv/video/*
@@ -13,90 +13,89 @@
 // @license MIT
 // ==/UserScript==
 let cacheRate = 1,
-    cacheFlag = true,
-    rateArr = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5, 0.1]
+  cacheFlag = true,
+  rateArr = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5, 0.1];
+
+let selector = document.querySelector.bind(document);
 
 function waitForNode(nodeSelector, callback) {
-    var node = nodeSelector();
-    if (node) {
-        callback(node);
-    } else {
-        setTimeout(function() { waitForNode(nodeSelector, callback); }, 100);
-    }
+  if (nodeSelector()) {
+    callback();
+  } else {
+    setTimeout(() => {
+      waitForNode(nodeSelector, callback);
+    }, 300);
+  }
 }
-
-
 function debounce(func, wait) {
-    let timer;
-    return function() {
-        let args = arguments;
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => {
-            func.apply(this, args)
-        }, wait)
-    }
+  let timer;
+  return function () {
+    let args = arguments;
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      func.apply(this, args);
+    }, wait);
+  };
+}
+function deleteChild(element) {
+  while (element.firstChild) {
+    element.removeChild(element.firstChild);
+  }
 }
 
-function deleteChild(e) {
-    var child = e.lastElementChild;
-    while (child) {
-        e.removeChild(child);
-        child = e.lastElementChild;
-    }
-}
+const key = 'lgldl_rate_key';
 
 function setRate(video, rate) {
-    video.playbackRate=rate;
+  video.playbackRate = rate;
+  localStorage.setItem(key, rate);
+  setRateText(rate);
 }
 
 function setRateText(rate) {
-    (document.querySelector(".bilibili-player-video-btn-speed-name")||document.querySelector("div.squirtle-select-result.squirtle-speed-select-result")).innerText = `${rate}x`;
+  const rateElement = selector('.bpx-player-ctrl-playbackrate-result');
+  if (rateElement) {
+    rateElement.innerText = `${rate}x`;
+  }
 }
 
+const initRateBody = function (callBack) {
+  waitForNode(
+    () => selector('ul.bpx-player-ctrl-playbackrate-menu') && selector('.bili-header .right-entry'),
+    () => {
+      const menuNode = selector('ul.bpx-player-ctrl-playbackrate-menu');
+      const cachedRate = Number(localStorage.getItem(key) || 1);
+      const videoElement = selector('video') || selector('bwp-video');
+      if (!videoElement) {
+        alert('清空缓存后刷新即可使用');
+        return;
+      }
 
-const initRateBody = function(callBack) {
-    waitForNode(() => document.querySelector('div.bilibili-player-video-btn-speed > div > ul')||document.querySelector("ul.squirtle-select-list.squirtle-speed-select-list.squirtle-dialog"),
-        (node) => {
-             var oV = document.querySelector("video")?document.querySelector("video"):document.querySelector("bwp-video")
-            if (oV == undefined) {
-                alert("清空缓存后刷新即可使用")
-                return;
-            }
-            deleteChild(node)
-            for (let i of rateArr) {
-
-                var tmpLi = document.createElement('li');
-                tmpLi.classList = "bilibili-player-video-btn-speed-menu-list squirtle-select-item ";
-                tmpLi.innerText = `${ i}x`;
-                tmpLi.style.height = "30px"
-                tmpLi.style["font-size"] = "16px"
-                tmpLi.style["line-height"] = "30px"
-                tmpLi.addEventListener("click", function(k) {
-                    return function(e) {
-                         e.stopPropagation();
-                       e.preventDefault();
-                        cacheRate = k
-                        setRate(oV, k)
-                        setRateText(k)
-                    }
-                }(i));
-                node.appendChild(tmpLi);
-            }
-            oV.addEventListener('DOMNodeRemoved', () => {
-                if (cacheFlag == true) {
-                    let tmp = debounce(function() {
-                        initRateBody(setRate(oV, cacheRate));
-                        setRateText(cacheRate)
-                        cacheFlag = true;
-                    }, 1000)
-                    tmp();
-                }
-                cacheFlag = false
-            });
-            callBack && callBack();
+      deleteChild(menuNode);
+      rateArr.forEach((rate) => {
+        const rateItem = document.createElement('li');
+        rateItem.classList.add('bpx-player-ctrl-playbackrate-menu-item');
+        rateItem.innerText = `${rate}x`;
+        rateItem.style.height = '30px';
+        rateItem.style.fontSize = '16px';
+        rateItem.style.lineHeight = '30px';
+        rateItem.addEventListener('click', () => {
+          setRate(videoElement, rate);
         });
+        menuNode.appendChild(rateItem);
+      });
+
+      const applyCachedRate = () => {
+        if (cachedRate !== videoElement.playbackRate) {
+          setRate(videoElement, cachedRate);
+        }
+      };
+      applyCachedRate();
+      videoElement.addEventListener('playing', applyCachedRate);
+
+      cacheRate = Number(localStorage.getItem(key) || 1);
+      callBack && callBack();
+    }
+  );
 };
-window.onload = initRateBody(null);
-window.onhashchange = function() {
-    initRateBody(setCacheRate);
-}
+document.addEventListener('DOMContentLoaded', () => initRateBody(null));
+window.onhashchange = () => initRateBody();
